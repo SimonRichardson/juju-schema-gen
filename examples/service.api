@@ -1,0 +1,23 @@
+package bundles
+
+facade Bundle[1] {
+
+    param BundleChangesParams {
+        BundleDataYAML  string
+        BundleURL       string
+    }
+
+    data BundleChanges {
+        ID              string
+        Method          string
+        Args            []Any
+        Requires        []string
+    }
+
+    result BundleChangesResults {
+        Changes         []BundleChanges
+        Errors          []string
+    }
+
+    GetChanges(BundleChangesParams) (BundleChangesResults, error)
+}
