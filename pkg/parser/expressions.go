@@ -129,14 +129,14 @@ func (k *Body) Parse(reader Reader, token lexer.Token) (Expression, error) {
 		token,
 	}
 	expressions := make([]Expression, 0)
-	for i := 0; ; i++ {
+	for i := 0; i < reader.Len(); i++ {
 		// Attempt to read in the close, if it matches the break.
 		right, err := reader.Peek(i)
 		if err != nil {
 			return nil, err
 		}
 		if right.Type == k.Right {
-			reader.AdvanceTo(i)
+			reader.AdvanceTo(i + 1)
 			token, err := k.Right.Token()
 			if err != nil {
 				return nil, err
@@ -145,15 +145,74 @@ func (k *Body) Parse(reader Reader, token lexer.Token) (Expression, error) {
 			break
 		}
 
+		fmt.Println("-----")
+
 		// Parse recursively
-		parsed, err := reader.Parse()
+		parsed, consumed, err := reader.Parse()
 		if err != nil {
 			return nil, err
 		}
+
+		for k, v := range parsed {
+			fmt.Println(k, fmt.Sprintf("%v %+v", v.Type().String(), v.Tokens()))
+		}
+		fmt.Println("-----", consumed)
 		expressions = append(expressions, parsed...)
+		i += consumed
 	}
 
 	return &Body{
+		tokens:      tokens,
+		expressions: expressions,
+	}, nil
+}
+
+type List struct {
+	Left      lexer.TokenType
+	Right     lexer.TokenType
+	Separator lexer.TokenType
+	tokens    []lexer.Token
+}
+
+func (k *List) Type() ExpressionType {
+	return EList
+}
+
+func (k *List) Tokens() []lexer.Token {
+	return k.tokens
+}
+
+func (k *List) Parse(reader Reader, token lexer.Token) (Expression, error) {
+	if token.Type != k.Left {
+		return nil, fmt.Errorf("unexpected type %q, wanted %q", token.Type.String(), k.Left.String())
+	}
+
+	tokens := []lexer.Token{
+		token,
+	}
+	for i := 0; ; i++ {
+		// Attempt to read in the close, if it matches the break.
+		right, err := reader.Peek(i)
+		if err != nil {
+			return nil, err
+		}
+		if right.Type == k.Right {
+			reader.AdvanceTo(i + 1)
+			token, err := k.Right.Token()
+			if err != nil {
+				return nil, err
+			}
+			tokens = append(tokens, token)
+			break
+		} else if right.Type == k.Separator {
+			reader.AdvanceTo(i + 1)
+			continue
+		}
+
+		tokens = append(tokens, right)
+	}
+
+	return &List{
 		tokens: tokens,
 	}, nil
 }

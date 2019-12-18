@@ -43,13 +43,22 @@ func (p *Parser) Read(lex *lexer.Lexer) (int, error) {
 func (p *Parser) String() string {
 	var buf []string
 	for _, v := range p.expressions {
-		var expressions string
-		if ex, ok := v.(RecursiveExpression); ok {
-			expressions = fmt.Sprintf(" %s", ex.Expressions())
-		}
-		buf = append(buf, fmt.Sprintf("%d %v%s", v.Type(), v.Tokens(), expressions))
+		expressions := describeExpressions(v, "  ")
+		buf = append(buf, fmt.Sprintf("%s %v%s", v.Type(), v.Tokens(), expressions))
 	}
 	return strings.Join(buf, "\n")
+}
+
+func describeExpressions(v Expression, s string) string {
+	var result string
+	if ex, ok := v.(RecursiveExpression); ok {
+		result += "\n"
+		for _, v := range ex.Expressions() {
+			result += fmt.Sprintf("%s- %s %v\n", s, v.Type(), v.Tokens())
+			result += describeExpressions(v, s+"  ")
+		}
+	}
+	return result
 }
 
 type reader struct {
@@ -60,7 +69,7 @@ type reader struct {
 
 func (r *reader) Peek(i int) (lexer.Token, error) {
 	if i >= len(r.tokens) {
-		return lexer.Token{}, fmt.Errorf("not found")
+		return lexer.Token{}, fmt.Errorf("unable to peek %d:%d", i, len(r.tokens))
 	}
 	return *r.tokens[i], nil
 }
@@ -69,24 +78,30 @@ func (r *reader) AdvanceTo(i int) {
 	r.offset = i
 }
 
-func (r *reader) Parse() ([]Expression, error) {
+func (r *reader) Parse() ([]Expression, int, error) {
 	expressions := make([]Expression, 0)
-	for i := r.offset; i < len(r.tokens); i++ {
+	i := r.offset
+	for ; i < len(r.tokens); i++ {
 		token := r.tokens[i]
 		if parselet, ok := r.types[token.Type]; ok {
-			r := &reader{
+			sub := &reader{
 				types:  r.types,
 				tokens: r.tokens[i+1:],
 			}
-			expression, err := parselet.Parse(r, *token)
+			expression, err := parselet.Parse(sub, *token)
 			if err != nil {
-				return nil, err
+				return nil, -1, err
 			}
 			expressions = append(expressions, expression)
-			i += r.offset
+			i += sub.offset
 		} else {
-			return nil, fmt.Errorf("unexpected token type %q at %d", token.Type.String(), i)
+			break
 		}
 	}
-	return expressions, nil
+	r.offset += i + 1
+	return expressions, i - 1, nil
+}
+
+func (r *reader) Len() int {
+	return len(r.tokens)
 }

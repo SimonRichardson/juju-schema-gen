@@ -7,7 +7,8 @@ import (
 type Reader interface {
 	Peek(int) (lexer.Token, error)
 	AdvanceTo(int)
-	Parse() ([]Expression, error)
+	Parse() ([]Expression, int, error)
+	Len() int
 }
 
 type Parselet interface {
@@ -25,9 +26,27 @@ type RecursiveExpression interface {
 
 type ExpressionType int
 
+func (t ExpressionType) String() string {
+	switch t {
+	case EKeyword:
+		return "keyword"
+	case EVersion:
+		return "version"
+	case EBody:
+		return "body"
+	case EType:
+		return "type"
+	case EList:
+		return "list"
+	default:
+		return "UNKNOWN"
+	}
+}
+
 const (
 	EKeyword ExpressionType = iota
 	EVersion
 	EBody
 	EType
+	EList
 )

@@ -19,5 +19,5 @@ facade Bundle<1> {
         Errors          []string
     }
 
-    GetChanges(BundleChangesParams) (BundleChangesResults, error)
+    GetChanges(BundleChangesParams, Something) (BundleChangesResults, error)
 }

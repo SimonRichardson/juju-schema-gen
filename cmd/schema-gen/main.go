@@ -49,6 +49,11 @@ func main() {
 			Left:  lexer.TLeftCurlyBracket,
 			Right: lexer.TRightCurlyBracket,
 		},
+		lexer.TLeftBracket: &parser.List{
+			Left:      lexer.TLeftBracket,
+			Right:     lexer.TRightBracket,
+			Separator: lexer.TComma,
+		},
 	})
 	_, err = par.Read(lex)
 	fmt.Println(err)
