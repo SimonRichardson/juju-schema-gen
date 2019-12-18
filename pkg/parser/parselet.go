@@ -6,7 +6,8 @@ import (
 
 type Reader interface {
 	Peek(int) (lexer.Token, error)
-	Advance(int)
+	AdvanceTo(int)
+	Parse() ([]Expression, error)
 }
 
 type Parselet interface {
@@ -18,9 +19,15 @@ type Expression interface {
 	Tokens() []lexer.Token
 }
 
+type RecursiveExpression interface {
+	Expressions() []Expression
+}
+
 type ExpressionType int
 
 const (
 	EKeyword ExpressionType = iota
-	EVersion ExpressionType = iota
+	EVersion
+	EBody
+	EType
 )

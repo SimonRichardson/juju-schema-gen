@@ -15,6 +15,8 @@ func main() {
 		log.Fatalf("Error reading file: %v", err)
 	}
 
+	// Convert a series of bytes into tokens
+
 	lex := lexer.New(map[byte]lexer.TokenType{
 		'[': lexer.TLeftSquareBracket,
 		']': lexer.TRightSquareBracket,
@@ -22,17 +24,38 @@ func main() {
 		'}': lexer.TRightCurlyBracket,
 		'(': lexer.TLeftBracket,
 		')': lexer.TRightBracket,
+		'<': lexer.TLeftAngleBracket,
+		'>': lexer.TRightAngleBracket,
 		',': lexer.TComma,
 	})
 	_, err = lex.Write(bytes)
 	fmt.Println(err)
 	fmt.Println("----")
 
+	// Parse the lexer to form a series of expressions
+
 	par := parser.New(map[lexer.TokenType]parser.Parselet{
-		lexer.TString:            &parser.Keyword{},
-		lexer.TLeftSquareBracket: &parser.Version{},
+		lexer.TString: &parser.Keyword{},
+		lexer.TLeftAngleBracket: &parser.Version{
+			Left:  lexer.TLeftAngleBracket,
+			Right: lexer.TRightAngleBracket,
+		},
+		lexer.TLeftSquareBracket: &parser.Type{
+			Left:    lexer.TLeftSquareBracket,
+			Right:   lexer.TRightSquareBracket,
+			Keyword: lexer.TString,
+		},
+		lexer.TLeftCurlyBracket: &parser.Body{
+			Left:  lexer.TLeftCurlyBracket,
+			Right: lexer.TRightCurlyBracket,
+		},
 	})
 	_, err = par.Read(lex)
 	fmt.Println(err)
 	fmt.Println(par.String())
+	fmt.Println("----")
+
+	// Form a AST from the expressions
+
+	// Interpret the AST
 }

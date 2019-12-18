@@ -25,6 +25,8 @@ func (k *Keyword) Parse(reader Reader, token lexer.Token) (Expression, error) {
 }
 
 type Version struct {
+	Left   lexer.TokenType
+	Right  lexer.TokenType
 	tokens []lexer.Token
 }
 
@@ -37,25 +39,121 @@ func (k *Version) Tokens() []lexer.Token {
 }
 
 func (k *Version) Parse(reader Reader, token lexer.Token) (Expression, error) {
-	if token.Type != lexer.TLeftSquareBracket {
-		return nil, fmt.Errorf("unexpected type %v, wanted '['", token.Type)
+	if token.Type != k.Left {
+		return nil, fmt.Errorf("unexpected type %q, wanted %q", token.Type.String(), k.Left.String())
 	}
 	version, err := reader.Peek(0)
 	if err != nil {
 		return nil, err
 	}
 	if version.Type != lexer.TNumber {
-		return nil, fmt.Errorf("unexpected type %v, wanted '0-9'", version.Type)
+		return nil, fmt.Errorf("unexpected type %q, wanted \"0-9\"", version.Type.String())
 	}
 	right, err := reader.Peek(1)
 	if err != nil {
 		return nil, err
 	}
-	if right.Type != lexer.TRightSquareBracket {
-		return nil, fmt.Errorf("unexpected type %v, wanted ']'", right.Type)
+	if right.Type != k.Right {
+		return nil, fmt.Errorf("unexpected type %q, wanted %q", right.Type.String(), k.Right.String())
 	}
-	reader.Advance(2)
+	reader.AdvanceTo(2)
 	return &Version{
 		tokens: []lexer.Token{token, version, right},
+	}, nil
+}
+
+type Type struct {
+	Left    lexer.TokenType
+	Right   lexer.TokenType
+	Keyword lexer.TokenType
+	tokens  []lexer.Token
+}
+
+func (k *Type) Type() ExpressionType {
+	return EType
+}
+
+func (k *Type) Tokens() []lexer.Token {
+	return k.tokens
+}
+
+func (k *Type) Parse(reader Reader, token lexer.Token) (Expression, error) {
+	if token.Type != k.Left {
+		return nil, fmt.Errorf("unexpected type %q, wanted %q", token.Type.String(), k.Left.String())
+	}
+	right, err := reader.Peek(0)
+	if err != nil {
+		return nil, err
+	}
+	if right.Type != k.Right {
+		return nil, fmt.Errorf("unexpected type %q, wanted %q", right.Type.String(), k.Right.String())
+	}
+	keyword, err := reader.Peek(1)
+	if err != nil {
+		return nil, err
+	}
+	if keyword.Type != k.Keyword {
+		return nil, fmt.Errorf("unexpected type %q, wanted %q", keyword.Type.String(), k.Keyword.String())
+	}
+	reader.AdvanceTo(2)
+	return &Type{
+		tokens: []lexer.Token{token, right, keyword},
+	}, nil
+}
+
+type Body struct {
+	Left        lexer.TokenType
+	Right       lexer.TokenType
+	tokens      []lexer.Token
+	expressions []Expression
+}
+
+func (k *Body) Type() ExpressionType {
+	return EBody
+}
+
+func (k *Body) Tokens() []lexer.Token {
+	return k.tokens
+}
+
+func (k *Body) Expressions() []Expression {
+	return k.expressions
+}
+
+func (k *Body) Parse(reader Reader, token lexer.Token) (Expression, error) {
+	if token.Type != k.Left {
+		return nil, fmt.Errorf("unexpected type %q, wanted %q", token.Type.String(), k.Left.String())
+	}
+
+	tokens := []lexer.Token{
+		token,
+	}
+	expressions := make([]Expression, 0)
+	for i := 0; ; i++ {
+		// Attempt to read in the close, if it matches the break.
+		right, err := reader.Peek(i)
+		if err != nil {
+			return nil, err
+		}
+		if right.Type == k.Right {
+			reader.AdvanceTo(i)
+			token, err := k.Right.Token()
+			if err != nil {
+				return nil, err
+			}
+			tokens = append(tokens, token)
+			break
+		}
+
+		// Parse recursively
+		parsed, err := reader.Parse()
+		if err != nil {
+			return nil, err
+		}
+		expressions = append(expressions, parsed...)
+	}
+
+	return &Body{
+		tokens: tokens,
 	}, nil
 }

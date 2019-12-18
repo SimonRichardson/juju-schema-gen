@@ -1,6 +1,6 @@
 package bundles
 
-facade Bundle[1] {
+facade Bundle<1> {
 
     param BundleChangesParams {
         BundleDataYAML  string

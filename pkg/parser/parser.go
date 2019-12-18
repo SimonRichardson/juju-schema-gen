@@ -24,6 +24,7 @@ func (p *Parser) Read(lex *lexer.Lexer) (int, error) {
 		token := tokens[i]
 		if parselet, ok := p.types[token.Type]; ok {
 			r := &reader{
+				types:  p.types,
 				tokens: tokens[i+1:],
 			}
 			expression, err := parselet.Parse(r, *token)
@@ -33,7 +34,7 @@ func (p *Parser) Read(lex *lexer.Lexer) (int, error) {
 			p.expressions = append(p.expressions, expression)
 			i += r.offset
 		} else {
-			return i, fmt.Errorf("unexpected token type %d at %d", token.Type, i)
+			return i, fmt.Errorf("unexpected token type %q at %d", token.Type.String(), i)
 		}
 	}
 	return len(tokens), nil
@@ -42,12 +43,17 @@ func (p *Parser) Read(lex *lexer.Lexer) (int, error) {
 func (p *Parser) String() string {
 	var buf []string
 	for _, v := range p.expressions {
-		buf = append(buf, fmt.Sprintf("%d %v", v.Type(), v.Tokens()))
+		var expressions string
+		if ex, ok := v.(RecursiveExpression); ok {
+			expressions = fmt.Sprintf(" %s", ex.Expressions())
+		}
+		buf = append(buf, fmt.Sprintf("%d %v%s", v.Type(), v.Tokens(), expressions))
 	}
 	return strings.Join(buf, "\n")
 }
 
 type reader struct {
+	types  map[lexer.TokenType]Parselet
 	tokens []*lexer.Token
 	offset int
 }
@@ -59,6 +65,28 @@ func (r *reader) Peek(i int) (lexer.Token, error) {
 	return *r.tokens[i], nil
 }
 
-func (r *reader) Advance(i int) {
+func (r *reader) AdvanceTo(i int) {
 	r.offset = i
+}
+
+func (r *reader) Parse() ([]Expression, error) {
+	expressions := make([]Expression, 0)
+	for i := r.offset; i < len(r.tokens); i++ {
+		token := r.tokens[i]
+		if parselet, ok := r.types[token.Type]; ok {
+			r := &reader{
+				types:  r.types,
+				tokens: r.tokens[i+1:],
+			}
+			expression, err := parselet.Parse(r, *token)
+			if err != nil {
+				return nil, err
+			}
+			expressions = append(expressions, expression)
+			i += r.offset
+		} else {
+			return nil, fmt.Errorf("unexpected token type %q at %d", token.Type.String(), i)
+		}
+	}
+	return expressions, nil
 }
