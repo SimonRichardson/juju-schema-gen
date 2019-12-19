@@ -9,12 +9,12 @@ facade Bundle<1> {
         Requires        []string
     }
 
-    param BundleChangesParams {
+    data BundleChangesParams {
         BundleDataYAML  string
         BundleURL       string
     }
 
-    result BundleChangesResults {
+    data BundleChangesResults {
         Changes         []BundleChanges
         Errors          []string
     }

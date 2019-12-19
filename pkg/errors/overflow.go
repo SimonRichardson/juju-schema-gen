@@ -10,10 +10,9 @@ import (
 )
 
 type OverflowError struct {
-	Context      string
-	Char         string
-	Position     cursor.Position
-	Alternatives []string
+	Context  string
+	Char     string
+	Position cursor.Position
 }
 
 func (e OverflowError) Error() string {
@@ -30,12 +29,4 @@ const overflowTemplate = `Unexpected overflow found "{{.Char}}"
 {{$position := .Position}}
 {{$position.Line}}| {{.Context}}
 {{offset (len (print $position.Line)) 2}}{{underline $position.Start $position.End}}
-
-{{if .Alternatives}}
-Maybe you want one of the following?
-
-{{range $alt := .Alternatives}}
-  - {{$alt}}
-{{end}}
-{{end}}
 `

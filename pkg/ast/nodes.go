@@ -9,23 +9,17 @@ import (
 	"github.com/SimonRichardson/juju-schema-gen/pkg/parser"
 )
 
-type Data struct {
+type Field struct {
 	cursor.Position
-	Version int
-	Name    string
-	Type    string
+	Name parser.Expression
+	Type parser.Expression
 }
 
 type Methods struct {
 	cursor.Position
 	Name   string
-	Inputs []Type
-	Output []Type
-}
-
-type Type struct {
-	cursor.Position
-	Name string
+	Inputs []parser.Expression
+	Output []parser.Expression
 }
 
 func matchString(expressions []parser.Expression, index int, value string) (parser.Expression, error) {
@@ -77,51 +71,20 @@ func pluckString(expressions []parser.Expression, index int) (parser.Expression,
 	return expression, tokens[0], nil
 }
 
-func pluckVersion(expressions []parser.Expression, index int) (parser.Expression, lexer.Token, error) {
-	if index >= len(expressions) {
-		return nil, lexer.Token{}, errors.OverflowError{}
-	}
-
-	expression := expressions[index]
-	if expression.Type() != parser.EVersion {
-		position := expression.Position()
-		tokens := tokenStrings(expression.Tokens())
-		return nil, lexer.Token{}, errors.ExpressionError{
-			Context:      contextForLine(expressions, position.Line),
-			Token:        tokens,
-			Alternatives: []string{"<version> where version is a number"},
-			Position: cursor.Position{
-				Line:  position.Line,
-				Start: position.Start,
-				End:   position.Start + len(tokens),
-			},
-		}
-	}
-
-	tokens := expression.Tokens()
-	if len(tokens) != 3 {
-		position := expression.Position()
-		tokens := tokenStrings(expression.Tokens())
-		return nil, lexer.Token{}, errors.ExpressionError{
-			Context:      contextForLine(expressions, position.Line),
-			Token:        tokens,
-			Alternatives: []string{"<version> where version is a number"},
-			Position: cursor.Position{
-				Line:  position.Line,
-				Start: position.Start + 1,
-				End:   position.Start + 1 + len(tokens),
-			},
-		}
-	}
-	return expression, tokens[1], nil
-}
-
 func tokenStrings(tokens []lexer.Token) string {
 	var result string
 	for _, v := range tokens {
 		result += string(v.Bytes)
 	}
 	return result
+}
+
+func firstTokenString(tokens []lexer.Token) string {
+	return string(tokens[0].Bytes)
+}
+
+func lastTokenString(tokens []lexer.Token) string {
+	return string(tokens[len(tokens)-1].Bytes)
 }
 
 func contextForLine(expressions []parser.Expression, line int) string {
