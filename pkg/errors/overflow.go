@@ -3,8 +3,8 @@ package errors
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"strings"
+	"text/template"
 
 	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
 )
@@ -26,9 +26,9 @@ func (e OverflowError) Error() string {
 	return strings.TrimSpace(buf.String())
 }
 
-const overflowTemplate = `Unexpected overflow found "{{.Char | html}}"
+const overflowTemplate = `Unexpected overflow found "{{.Char}}"
 {{$position := .Position}}
-{{$position.Line}}| {{.Context | html}}
+{{$position.Line}}| {{.Context}}
 {{offset (len (print $position.Line)) 2}}{{underline $position.Start $position.End}}
 
 {{if .Alternatives}}

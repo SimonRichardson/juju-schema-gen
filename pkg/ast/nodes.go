@@ -3,21 +3,11 @@ package ast
 import (
 	"fmt"
 
-	"github.com/SimonRichardson/juju-schema-gen/pkg/lexer"
-
 	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
 	"github.com/SimonRichardson/juju-schema-gen/pkg/errors"
+	"github.com/SimonRichardson/juju-schema-gen/pkg/lexer"
 	"github.com/SimonRichardson/juju-schema-gen/pkg/parser"
 )
-
-type Facade struct {
-	cursor.Position
-	Name    string
-	Version int
-	Params  []Data
-	Results []Data
-	Methods []Methods
-}
 
 type Data struct {
 	cursor.Position
@@ -71,7 +61,7 @@ func pluckString(expressions []parser.Expression, index int) (parser.Expression,
 		return nil, lexer.Token{}, errors.ExpressionError{
 			Context:      contextForLine(expressions, position.Line),
 			Token:        tokens,
-			Alternatives: []string{"<string> that is a-zA-Z"},
+			Alternatives: []string{"<string> where the string matches a-zA-Z"},
 			Position: cursor.Position{
 				Line:  position.Line,
 				Start: position.Start,
@@ -85,6 +75,45 @@ func pluckString(expressions []parser.Expression, index int) (parser.Expression,
 		return nil, lexer.Token{}, errors.ExpressionError{}
 	}
 	return expression, tokens[0], nil
+}
+
+func pluckVersion(expressions []parser.Expression, index int) (parser.Expression, lexer.Token, error) {
+	if index >= len(expressions) {
+		return nil, lexer.Token{}, errors.OverflowError{}
+	}
+
+	expression := expressions[index]
+	if expression.Type() != parser.EVersion {
+		position := expression.Position()
+		tokens := tokenStrings(expression.Tokens())
+		return nil, lexer.Token{}, errors.ExpressionError{
+			Context:      contextForLine(expressions, position.Line),
+			Token:        tokens,
+			Alternatives: []string{"<version> where version is a number"},
+			Position: cursor.Position{
+				Line:  position.Line,
+				Start: position.Start,
+				End:   position.Start + len(tokens),
+			},
+		}
+	}
+
+	tokens := expression.Tokens()
+	if len(tokens) != 3 {
+		position := expression.Position()
+		tokens := tokenStrings(expression.Tokens())
+		return nil, lexer.Token{}, errors.ExpressionError{
+			Context:      contextForLine(expressions, position.Line),
+			Token:        tokens,
+			Alternatives: []string{"<version> where version is a number"},
+			Position: cursor.Position{
+				Line:  position.Line,
+				Start: position.Start + 1,
+				End:   position.Start + 1 + len(tokens),
+			},
+		}
+	}
+	return expression, tokens[1], nil
 }
 
 func tokenStrings(tokens []lexer.Token) string {

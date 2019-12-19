@@ -3,8 +3,8 @@ package errors
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"strings"
+	"text/template"
 
 	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
 )
@@ -26,9 +26,9 @@ func (e ExpressionError) Error() string {
 	return strings.TrimSpace(buf.String())
 }
 
-const expressionTemplate = `Unexpected expression found "{{.Token | html}}"
+const expressionTemplate = `Unexpected expression found "{{.Token }}"
 {{$position := .Position}}
-{{$position.Line}}| {{.Context | html}}
+{{$position.Line}}| {{.Context}}
 {{offset (len (print $position.Line)) 2}}{{underline $position.Start $position.End}}
 {{if .Alternatives -}}
 Maybe you want one of the following?
