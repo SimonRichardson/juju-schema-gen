@@ -1,24 +1,25 @@
 package lexer
 
 import (
+	"bytes"
 	"fmt"
-	"io"
+	"strconv"
 	"strings"
+	"text/scanner"
 
 	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
-
 	"github.com/SimonRichardson/juju-schema-gen/pkg/errors"
 )
 
 // Lexer iterates over a source
 type Lexer struct {
-	types  map[byte]TokenType
+	types  map[string]TokenType
 	tokens []*Token
 	ptr    int
 }
 
 // New creates a new lexer from some token types
-func New(types map[byte]TokenType) *Lexer {
+func New(types map[string]TokenType) *Lexer {
 	return &Lexer{
 		types:  types,
 		tokens: make([]*Token, 0),
@@ -30,107 +31,75 @@ func (l *Lexer) Tokens() []*Token {
 	return l.tokens[:]
 }
 
-func (l *Lexer) Write(p []byte) (int, error) {
-	var index int
-	var b byte
-	var line int
-	var currentLine []byte
-LOOP:
-	for index, b = range p {
-		currentLine = append(currentLine, b)
-		switch {
-		case b == ' ' || b == '\n':
-			if b == '\n' {
-				line++
-				currentLine = make([]byte, 0)
-			}
-			l.ptr = len(l.tokens)
-			continue LOOP
-		case (b >= '0' && b <= '9'):
-			if l.ptr == len(l.tokens) {
-				l.tokens = append(l.tokens, &Token{
-					Type:  TNumber,
-					Bytes: []byte{b},
-					Position: cursor.Position{
-						Line:  line + 1,
-						Start: len(currentLine) - 1,
-						End:   len(currentLine),
-					},
-				})
-				l.ptr = len(l.tokens) + 1
-			} else {
-				token := l.tokens[len(l.tokens)-1]
-				if token.Type != TNumber {
-					return index, errors.CharPositionError{
-						Context: string(currentLine),
-						Char:    string(p[index]),
-						Position: cursor.Position{
-							Line:  line + 1,
-							Start: len(currentLine) - 1,
-							End:   len(currentLine),
-						},
-					}
-				}
-				token.Bytes = append(token.Bytes, b)
-				token.Position.End = len(currentLine)
-			}
-		case (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z'):
-			if l.ptr == len(l.tokens) {
-				l.tokens = append(l.tokens, &Token{
-					Type:  TString,
-					Bytes: []byte{b},
-					Position: cursor.Position{
-						Line:  line + 1,
-						Start: len(currentLine) - 1,
-						End:   len(currentLine),
-					},
-				})
-				l.ptr = len(l.tokens) + 1
-			} else {
-				token := l.tokens[len(l.tokens)-1]
-				if token.Type != TString {
-					return index, errors.CharPositionError{
-						Context: string(currentLine),
-						Char:    string(p[index]),
-						Position: cursor.Position{
-							Line:  line + 1,
-							Start: len(currentLine) - 1,
-							End:   len(currentLine),
-						},
-					}
-				}
-				token.Bytes = append(token.Bytes, b)
-				token.Position.End = len(currentLine)
-			}
-		default:
-			if tokenType, ok := l.types[b]; ok {
-				l.tokens = append(l.tokens, &Token{
-					Type:  tokenType,
-					Bytes: []byte{b},
-					Position: cursor.Position{
-						Line:  line + 1,
-						Start: len(currentLine) - 1,
-						End:   len(currentLine),
-					},
-				})
-				l.ptr = len(l.tokens)
-				continue LOOP
-			}
-			break LOOP
+func (l *Lexer) Write(p []byte) (index int, err error) {
+	var line string
+
+	var s scanner.Scanner
+	s.Init(bytes.NewBuffer(p))
+	s.Filename = "service.api"
+	s.Error = func(s *scanner.Scanner, msg string) {
+		text := s.TokenText()
+		err = errors.CharPositionError{
+			Context: fmt.Sprintf("%s%s", line, text),
+			Char:    text,
+			Position: cursor.Position{
+				Line:  s.Position.Line,
+				Start: (s.Position.Column - 1),
+				End:   (s.Position.Column - 1) + len(text),
+			},
 		}
 	}
-	if index == len(p)-1 {
-		return index, io.EOF
+
+	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+		if err != nil {
+			return
+		}
+
+		text := s.TokenText()
+		line += fmt.Sprintf("%s ", text)
+		// Check to see if the text is a known type
+		if tokenType, ok := l.types[text]; ok {
+			l.tokens = append(l.tokens, &Token{
+				Type:  tokenType,
+				Bytes: []byte(text),
+				Position: cursor.Position{
+					Line:  s.Position.Line,
+					Start: (s.Position.Column - 1),
+					End:   (s.Position.Column - 1) + len(text),
+				},
+			})
+			goto SKIP
+		}
+
+		if _, err := strconv.Atoi(text); err == nil {
+			l.tokens = append(l.tokens, &Token{
+				Type:  TNumber,
+				Bytes: []byte(text),
+				Position: cursor.Position{
+					Line:  s.Position.Line,
+					Start: (s.Position.Column - 1),
+					End:   (s.Position.Column - 1) + len(text),
+				},
+			})
+			goto SKIP
+		}
+
+		l.tokens = append(l.tokens, &Token{
+			Type:  TString,
+			Bytes: []byte(text),
+			Position: cursor.Position{
+				Line:  s.Position.Line,
+				Start: (s.Position.Column - 1),
+				End:   (s.Position.Column - 1) + len(text),
+			},
+		})
+
+	SKIP:
+		if s.Peek() == '\n' {
+			line = ""
+		}
 	}
-	return index, errors.CharPositionError{
-		Context: string(currentLine),
-		Char:    string(p[index]),
-		Position: cursor.Position{
-			Line:  line + 1,
-			Start: len(currentLine) - 1,
-			End:   len(currentLine),
-		},
-	}
+	return len(p), nil
 }
 
 func (l *Lexer) String() string {

@@ -18,16 +18,16 @@ func main() {
 
 	// Convert a series of bytes into tokens
 
-	lex := lexer.New(map[byte]lexer.TokenType{
-		'[': lexer.TLeftSquareBracket,
-		']': lexer.TRightSquareBracket,
-		'{': lexer.TLeftCurlyBracket,
-		'}': lexer.TRightCurlyBracket,
-		'(': lexer.TLeftBracket,
-		')': lexer.TRightBracket,
-		'<': lexer.TLeftAngleBracket,
-		'>': lexer.TRightAngleBracket,
-		',': lexer.TComma,
+	lex := lexer.New(map[string]lexer.TokenType{
+		"[": lexer.TLeftSquareBracket,
+		"]": lexer.TRightSquareBracket,
+		"{": lexer.TLeftCurlyBracket,
+		"}": lexer.TRightCurlyBracket,
+		"(": lexer.TLeftBracket,
+		")": lexer.TRightBracket,
+		"<": lexer.TLeftAngleBracket,
+		">": lexer.TRightAngleBracket,
+		",": lexer.TComma,
 	})
 	_, err = lex.Write(bytes)
 	fmt.Println(err)
