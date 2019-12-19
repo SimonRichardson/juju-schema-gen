@@ -1,10 +1,19 @@
 package lexer
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
+)
 
 type Token struct {
-	Type  TokenType
-	Bytes []byte
+	Type     TokenType
+	Bytes    []byte
+	Position cursor.Position
+}
+
+func (t Token) MatchString(s string) bool {
+	return string(t.Bytes) == s
 }
 
 func (t Token) String() string {

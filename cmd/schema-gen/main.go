@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 
+	"github.com/SimonRichardson/juju-schema-gen/pkg/ast"
 	"github.com/SimonRichardson/juju-schema-gen/pkg/lexer"
 	"github.com/SimonRichardson/juju-schema-gen/pkg/parser"
 )
@@ -61,6 +62,10 @@ func main() {
 	fmt.Println("----")
 
 	// Form a AST from the expressions
+
+	tree, err := ast.Generate(par.Expressions())
+	fmt.Println(err)
+	fmt.Println(tree.String())
 
 	// Interpret the AST
 }

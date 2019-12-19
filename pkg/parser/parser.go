@@ -40,6 +40,10 @@ func (p *Parser) Read(lex *lexer.Lexer) (int, error) {
 	return len(tokens), nil
 }
 
+func (p *Parser) Expressions() []Expression {
+	return p.expressions
+}
+
 func (p *Parser) String() string {
 	var buf []string
 	for _, v := range p.expressions {

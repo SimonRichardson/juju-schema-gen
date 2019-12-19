@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
 	"github.com/SimonRichardson/juju-schema-gen/pkg/lexer"
 )
 
@@ -18,6 +19,7 @@ type Parselet interface {
 type Expression interface {
 	Type() ExpressionType
 	Tokens() []lexer.Token
+	Position() cursor.Position
 }
 
 type RecursiveExpression interface {

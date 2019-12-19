@@ -3,11 +3,13 @@ package parser
 import (
 	"fmt"
 
+	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
 	"github.com/SimonRichardson/juju-schema-gen/pkg/lexer"
 )
 
 type Keyword struct {
-	tokens []lexer.Token
+	position cursor.Position
+	tokens   []lexer.Token
 }
 
 func (k *Keyword) Type() ExpressionType {
@@ -18,16 +20,22 @@ func (k *Keyword) Tokens() []lexer.Token {
 	return k.tokens
 }
 
+func (k *Keyword) Position() cursor.Position {
+	return k.position
+}
+
 func (k *Keyword) Parse(reader Reader, token lexer.Token) (Expression, error) {
 	return &Keyword{
-		tokens: []lexer.Token{token},
+		position: token.Position,
+		tokens:   []lexer.Token{token},
 	}, nil
 }
 
 type Version struct {
-	Left   lexer.TokenType
-	Right  lexer.TokenType
-	tokens []lexer.Token
+	Left     lexer.TokenType
+	Right    lexer.TokenType
+	position cursor.Position
+	tokens   []lexer.Token
 }
 
 func (k *Version) Type() ExpressionType {
@@ -36,6 +44,10 @@ func (k *Version) Type() ExpressionType {
 
 func (k *Version) Tokens() []lexer.Token {
 	return k.tokens
+}
+
+func (k *Version) Position() cursor.Position {
+	return k.position
 }
 
 func (k *Version) Parse(reader Reader, token lexer.Token) (Expression, error) {
@@ -58,15 +70,17 @@ func (k *Version) Parse(reader Reader, token lexer.Token) (Expression, error) {
 	}
 	reader.AdvanceTo(2)
 	return &Version{
-		tokens: []lexer.Token{token, version, right},
+		position: token.Position,
+		tokens:   []lexer.Token{token, version, right},
 	}, nil
 }
 
 type Type struct {
-	Left    lexer.TokenType
-	Right   lexer.TokenType
-	Keyword lexer.TokenType
-	tokens  []lexer.Token
+	Left     lexer.TokenType
+	Right    lexer.TokenType
+	Keyword  lexer.TokenType
+	position cursor.Position
+	tokens   []lexer.Token
 }
 
 func (k *Type) Type() ExpressionType {
@@ -75,6 +89,10 @@ func (k *Type) Type() ExpressionType {
 
 func (k *Type) Tokens() []lexer.Token {
 	return k.tokens
+}
+
+func (k *Type) Position() cursor.Position {
+	return k.position
 }
 
 func (k *Type) Parse(reader Reader, token lexer.Token) (Expression, error) {
@@ -97,13 +115,15 @@ func (k *Type) Parse(reader Reader, token lexer.Token) (Expression, error) {
 	}
 	reader.AdvanceTo(2)
 	return &Type{
-		tokens: []lexer.Token{token, right, keyword},
+		position: token.Position,
+		tokens:   []lexer.Token{token, right, keyword},
 	}, nil
 }
 
 type Body struct {
 	Left        lexer.TokenType
 	Right       lexer.TokenType
+	position    cursor.Position
 	tokens      []lexer.Token
 	expressions []Expression
 }
@@ -114,6 +134,10 @@ func (k *Body) Type() ExpressionType {
 
 func (k *Body) Tokens() []lexer.Token {
 	return k.tokens
+}
+
+func (k *Body) Position() cursor.Position {
+	return k.position
 }
 
 func (k *Body) Expressions() []Expression {
@@ -155,6 +179,7 @@ func (k *Body) Parse(reader Reader, token lexer.Token) (Expression, error) {
 	}
 
 	return &Body{
+		position:    token.Position,
 		tokens:      tokens,
 		expressions: expressions,
 	}, nil
@@ -164,6 +189,7 @@ type List struct {
 	Left      lexer.TokenType
 	Right     lexer.TokenType
 	Separator lexer.TokenType
+	position  cursor.Position
 	tokens    []lexer.Token
 }
 
@@ -173,6 +199,10 @@ func (k *List) Type() ExpressionType {
 
 func (k *List) Tokens() []lexer.Token {
 	return k.tokens
+}
+
+func (k *List) Position() cursor.Position {
+	return k.position
 }
 
 func (k *List) Parse(reader Reader, token lexer.Token) (Expression, error) {
@@ -206,6 +236,7 @@ func (k *List) Parse(reader Reader, token lexer.Token) (Expression, error) {
 	}
 
 	return &List{
-		tokens: tokens,
+		position: token.Position,
+		tokens:   tokens,
 	}, nil
 }

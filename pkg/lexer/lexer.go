@@ -5,6 +5,8 @@ import (
 	"io"
 	"strings"
 
+	"github.com/SimonRichardson/juju-schema-gen/pkg/cursor"
+
 	"github.com/SimonRichardson/juju-schema-gen/pkg/errors"
 )
 
@@ -49,28 +51,67 @@ LOOP:
 				l.tokens = append(l.tokens, &Token{
 					Type:  TNumber,
 					Bytes: []byte{b},
+					Position: cursor.Position{
+						Line:  line + 1,
+						Start: len(currentLine) - 1,
+						End:   len(currentLine),
+					},
 				})
 				l.ptr = len(l.tokens) + 1
 			} else {
 				token := l.tokens[len(l.tokens)-1]
+				if token.Type != TNumber {
+					return index, errors.CharPositionError{
+						Context: string(currentLine),
+						Char:    string(p[index]),
+						Position: cursor.Position{
+							Line:  line + 1,
+							Start: len(currentLine) - 1,
+							End:   len(currentLine),
+						},
+					}
+				}
 				token.Bytes = append(token.Bytes, b)
+				token.Position.End = len(currentLine)
 			}
 		case (b >= 'a' && b <= 'z') || (b >= 'A' && b <= 'Z'):
 			if l.ptr == len(l.tokens) {
 				l.tokens = append(l.tokens, &Token{
 					Type:  TString,
 					Bytes: []byte{b},
+					Position: cursor.Position{
+						Line:  line + 1,
+						Start: len(currentLine) - 1,
+						End:   len(currentLine),
+					},
 				})
 				l.ptr = len(l.tokens) + 1
 			} else {
 				token := l.tokens[len(l.tokens)-1]
+				if token.Type != TString {
+					return index, errors.CharPositionError{
+						Context: string(currentLine),
+						Char:    string(p[index]),
+						Position: cursor.Position{
+							Line:  line + 1,
+							Start: len(currentLine) - 1,
+							End:   len(currentLine),
+						},
+					}
+				}
 				token.Bytes = append(token.Bytes, b)
+				token.Position.End = len(currentLine)
 			}
 		default:
 			if tokenType, ok := l.types[b]; ok {
 				l.tokens = append(l.tokens, &Token{
 					Type:  tokenType,
 					Bytes: []byte{b},
+					Position: cursor.Position{
+						Line:  line + 1,
+						Start: len(currentLine) - 1,
+						End:   len(currentLine),
+					},
 				})
 				l.ptr = len(l.tokens)
 				continue LOOP
@@ -82,11 +123,13 @@ LOOP:
 		return index, io.EOF
 	}
 	return index, errors.CharPositionError{
-		Context:       string(currentLine),
-		Char:          string(p[index]),
-		Line:          line + 1,
-		PositionStart: len(currentLine) - 1,
-		PositionEnd:   len(currentLine),
+		Context: string(currentLine),
+		Char:    string(p[index]),
+		Position: cursor.Position{
+			Line:  line + 1,
+			Start: len(currentLine) - 1,
+			End:   len(currentLine),
+		},
 	}
 }
 
