@@ -145,18 +145,11 @@ func (k *Body) Parse(reader Reader, token lexer.Token) (Expression, error) {
 			break
 		}
 
-		fmt.Println("-----")
-
 		// Parse recursively
 		parsed, consumed, err := reader.Parse()
 		if err != nil {
 			return nil, err
 		}
-
-		for k, v := range parsed {
-			fmt.Println(k, fmt.Sprintf("%v %+v", v.Type().String(), v.Tokens()))
-		}
-		fmt.Println("-----", consumed)
 		expressions = append(expressions, parsed...)
 		i += consumed
 	}

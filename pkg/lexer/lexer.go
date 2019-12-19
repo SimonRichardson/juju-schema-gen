@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"strings"
+
+	"github.com/SimonRichardson/juju-schema-gen/pkg/errors"
 )
 
 // Lexer iterates over a source
@@ -29,10 +31,17 @@ func (l *Lexer) Tokens() []*Token {
 func (l *Lexer) Write(p []byte) (int, error) {
 	var index int
 	var b byte
+	var line int
+	var currentLine []byte
 LOOP:
 	for index, b = range p {
+		currentLine = append(currentLine, b)
 		switch {
 		case b == ' ' || b == '\n':
+			if b == '\n' {
+				line++
+				currentLine = make([]byte, 0)
+			}
 			l.ptr = len(l.tokens)
 			continue LOOP
 		case (b >= '0' && b <= '9'):
@@ -72,7 +81,13 @@ LOOP:
 	if index == len(p)-1 {
 		return index, io.EOF
 	}
-	return index, fmt.Errorf("unexpected token %q at %d", p[index], index)
+	return index, errors.CharPositionError{
+		Context:       string(currentLine),
+		Char:          string(p[index]),
+		Line:          line + 1,
+		PositionStart: len(currentLine) - 1,
+		PositionEnd:   len(currentLine),
+	}
 }
 
 func (l *Lexer) String() string {
